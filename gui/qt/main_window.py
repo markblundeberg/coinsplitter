@@ -2178,6 +2178,13 @@ class ElectrumWindow(QMainWindow, MessageBoxMixin, PrintError):
         d.setLayout(vbox)
         d.exec_()
 
+    @protected
+    def start_coinsplit(self, address, password):
+        if not address:
+            return
+        from . import coinsplit
+        coinsplit.show_dialog(self, address, password)
+
     msg_sign = _("Signing with an address actually means signing with the corresponding "
                 "private key, and verifying with the corresponding public key. The "
                 "address you have entered does not have a unique public key, so these "
