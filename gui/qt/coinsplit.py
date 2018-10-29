@@ -15,7 +15,7 @@ from PyQt5.QtWidgets import *
 from .util import *
 from .qrtextedit import ShowQRTextEdit
 
-from electroncash.util import print_error, print_stderr
+from electroncash.util import print_error, print_stderr, NotEnoughFunds
 
 from .transaction_dialog import show_transaction
 
@@ -47,7 +47,7 @@ class SplitDialog(QDialog, MessageBoxMixin):
 
         self.setWindowTitle(_("OP_CHECKDATASIG Coin Splitting"))
 
-        self.setMinimumWidth(800)
+#        self.setMinimumWidth(800)
 
         vbox = QVBoxLayout()
         self.setLayout(vbox)
@@ -77,29 +77,35 @@ class SplitDialog(QDialog, MessageBoxMixin):
         hbox.addStretch(1)
 
 
+        grid = QGridLayout()
+        vbox.addLayout(grid)
+
+        l = QLabel(_("TXID of funding:"))
+        grid.addWidget(l, 0, 0)
+
+        l = QLabel(_("Output#"))
+        grid.addWidget(l, 0, 1)
+
+        l = QLabel(_("Value (sats)"))
+        grid.addWidget(l, 0, 2)
+
+        self.fund_txid_e = QLineEdit()
+        grid.addWidget(self.fund_txid_e, 1, 0)
+
+        self.fund_txout_e = QLineEdit()
+        self.fund_txout_e.setMaximumWidth(30)
+        grid.addWidget(self.fund_txout_e, 1, 1)
+
+        self.fund_value_e = QLineEdit()
+        self.fund_value_e.setMaximumWidth(50)
+        grid.addWidget(self.fund_value_e, 1, 2)
+
         hbox = QHBoxLayout()
         vbox.addLayout(hbox)
-
-        l = QLabel(_("TXID/out of funding:"))
-        hbox.addWidget(l)
 
         b = QPushButton(_("Fund new"))
         b.clicked.connect(self.fund)
         hbox.addWidget(b)
-
-        hbox.addStretch(1)
-
-
-        self.fund_txid_e = QLineEdit()
-        self.fund_txid_e.setText('aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa')
-        vbox.addWidget(self.fund_txid_e)
-        self.fund_txout_e = QLineEdit()
-        self.fund_txout_e.setText('0')
-        vbox.addWidget(self.fund_txout_e)
-
-
-        hbox = QHBoxLayout()
-        vbox.addLayout(hbox)
 
         b = QPushButton(_("Redeem with split (CDS chain)"))
         b.clicked.connect(lambda: self.spend('redeem'))
@@ -178,16 +184,27 @@ class SplitDialog(QDialog, MessageBoxMixin):
 
     def fund(self,):
         outputs = [(TYPE_ADDRESS, self.contract.address, 1000)]
-        tx = self.wallet.mktx(outputs, self.password, self.config,
-                              domain=[self.address], change_addr=self.address)
-
+        try:
+            tx = self.wallet.mktx(outputs, self.password, self.config,
+                                domain=[self.address], change_addr=self.address)
+        except NotEnoughFunds:
+            return self.show_critical(_("Not enough funds on address %s to fund smart contract.")%(self.address.to_ui_string()))
+        except Exception as e:
+            return self.show_critical(repr(e))
+        for i,out in enumerate(tx.outputs()):
+            if out[1] == self.contract.address:
+                self.fund_txout_e.setText(str(i))
+                self.fund_value_e.setText(str(out[2]))
+                break
+        else:
+            raise RuntimeError("Created tx is incorrect!")
         self.fund_txid_e.setText(tx.txid())
         self.main_window.show_transaction(tx)
 
     def spend(self, mode):
         prevout_hash = self.fund_txid_e.text()
         prevout_n = int(self.fund_txout_e.text())
-        value = 1000
+        value = int(self.fund_value_e.text())
         locktime = 0
         estimate_fee = self.config.estimate_fee
         out_addr = self.address
