@@ -80,11 +80,11 @@ class SplitDialog(QDialog, MessageBoxMixin):
         hbox = QHBoxLayout()
         vbox.addLayout(hbox)
 
-        l = QLabel(_("TXID of funding:"))
+        l = QLabel(_("TXID/out of funding:"))
         hbox.addWidget(l)
 
         b = QPushButton(_("Fund new"))
-        #b.clicked.connect(lambda: XXX)
+        b.clicked.connect(self.fund)
         hbox.addWidget(b)
 
         hbox.addStretch(1)
@@ -93,6 +93,9 @@ class SplitDialog(QDialog, MessageBoxMixin):
         self.fund_txid_e = QLineEdit()
         self.fund_txid_e.setText('aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa')
         vbox.addWidget(self.fund_txid_e)
+        self.fund_txout_e = QLineEdit()
+        self.fund_txout_e.setText('0')
+        vbox.addWidget(self.fund_txout_e)
 
 
         hbox = QHBoxLayout()
@@ -173,15 +176,24 @@ class SplitDialog(QDialog, MessageBoxMixin):
 #        d.exec_()
         d.show()
 
+    def fund(self,):
+        outputs = [(TYPE_ADDRESS, self.contract.address, 1000)]
+        tx = self.wallet.mktx(outputs, self.password, self.config,
+                              domain=[self.address], change_addr=self.address)
+
+        self.fund_txid_e.setText(tx.txid())
+        self.main_window.show_transaction(tx)
+
     def spend(self, mode):
-        prevout_n = 0
+        prevout_hash = self.fund_txid_e.text()
+        prevout_n = int(self.fund_txout_e.text())
         value = 1000
         locktime = 0
         estimate_fee = self.config.estimate_fee
         out_addr = self.address
 
         # generate the special spend
-        inp = self.contract.makeinput(self.fund_txid_e.text(), prevout_n, value, mode)
+        inp = self.contract.makeinput(prevout_hash, prevout_n, value, mode)
 
         inputs = [inp]
         invalue = value
