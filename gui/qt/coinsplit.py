@@ -91,6 +91,7 @@ class SplitDialog(QDialog, MessageBoxMixin):
 
 
         self.fund_txid_e = QLineEdit()
+        self.fund_txid_e.setText('aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa')
         vbox.addWidget(self.fund_txid_e)
 
 
@@ -98,11 +99,11 @@ class SplitDialog(QDialog, MessageBoxMixin):
         vbox.addLayout(hbox)
 
         b = QPushButton(_("Redeem with split (CDS chain)"))
-        #b.clicked.connect(lambda: XXX)
+        b.clicked.connect(lambda: self.spend('redeem'))
         hbox.addWidget(b)
 
         b = QPushButton(_("Refund (any chain)"))
-        #b.clicked.connect(lambda: XXX)
+        b.clicked.connect(lambda: self.spend('refund'))
         hbox.addWidget(b)
 
         hbox.addStretch(1)
@@ -113,6 +114,7 @@ class SplitDialog(QDialog, MessageBoxMixin):
 
         self.option1_rb = QRadioButton(_("Only spend spliting coin"))
         vbox.addWidget(self.option1_rb)
+        self.option1_rb.setChecked(True)
         self.option2_rb = QRadioButton(_("Include all coins from address") + " %.10s..."%(address.to_ui_string()))
         vbox.addWidget(self.option2_rb)
         self.option3_rb = QRadioButton(_("Include all coins from wallet") + ' "%s"'%(self.wallet.basename()))
@@ -168,9 +170,49 @@ class SplitDialog(QDialog, MessageBoxMixin):
 
         layout.addLayout(hbox, 4, 1)
 #        d.setWindowModality(Qt.WindowModal)
+#        d.exec_()
         d.show()
-        d.exec_()
 
+    def spend(self, mode):
+        prevout_n = 0
+        value = 1000
+        locktime = 0
+        estimate_fee = self.config.estimate_fee
+        out_addr = self.address
+
+        # generate the special spend
+        inp = self.contract.makeinput(self.fund_txid_e.text(), prevout_n, value, mode)
+
+        inputs = [inp]
+        invalue = value
+
+        # add on other spends
+        if self.option1_rb.isChecked():
+            domain = []
+        elif self.option2_rb.isChecked():
+            domain = [self.address]
+        elif self.option3_rb.isChecked():
+            domain = None
+        else:
+            raise RuntimeError
+        other_coins = self.wallet.get_utxos(domain, exclude_frozen=True, mature=True, confirmed_only=False)
+        for coin in other_coins:
+            self.wallet.add_input_info(coin)
+            inputs.append(coin)
+            invalue += coin['value']
+
+        outputs = [(TYPE_ADDRESS, out_addr, 0)]
+        tx1 = Transaction.from_io(inputs,outputs,locktime)
+        txsize = len(tx1.serialize(True))//2
+        fee = estimate_fee(txsize)
+
+        outputs = [(TYPE_ADDRESS, out_addr, invalue - fee)]
+        tx = Transaction.from_io(inputs,outputs,locktime)
+        self.contract.signtx(tx)
+        self.wallet.sign_transaction(tx, self.password)
+        self.contract.completetx(tx)
+
+        self.main_window.show_transaction(tx)
 
 from ecdsa.ecdsa import curve_secp256k1, generator_secp256k1
 from ecdsa.curves import SECP256k1
@@ -189,7 +231,8 @@ class SplitContract:
         p = curve_secp256k1.p()
         G = generator_secp256k1
 
-        # make two derived private keys
+        # make two derived private keys (integers between 1 and p-1 inclusive)
+
         # hard derivation:
         x = int.from_bytes(hashlib.sha512(b'Split1' + master_privkey.to_bytes(32, 'big')).digest(), 'big')
         self.priv1 = 1 + (x % (p-1))
@@ -203,6 +246,11 @@ class SplitContract:
         # generate compressed pubkeys
         self.pub1ser = point_to_ser(self.priv1 * G, True)
         self.pub2ser = point_to_ser(self.priv2 * G, True)
+
+        self.keypairs = {
+            self.pub1ser.hex() : (self.priv1.to_bytes(32, 'big'), True),
+            self.pub2ser.hex() : (self.priv2.to_bytes(32, 'big'), True),
+            }
 
         OP_CHECKDATASIG = 0xba
         OP_CHECKDATASIGVERIFY = 0xbb
@@ -228,8 +276,8 @@ class SplitContract:
         self.address = Address.from_multisig_script(self.redeemscript)
 
         # make dummy scripts of correct size for size estimation.
-        self.dummy_scriptsig_redeem = '01'*(2 + 72 + len(self.redeemscript))
-        self.dummy_scriptsig_refund = '00'*(2 + 72 + len(self.redeemscript))
+        self.dummy_scriptsig_redeem = '01'*(4 + 72 + len(self.redeemscript))
+        self.dummy_scriptsig_refund = '00'*(4 + 72 + len(self.redeemscript))
 
     def makeinput(self, prevout_hash, prevout_n, value, mode):
         """
@@ -240,8 +288,10 @@ class SplitContract:
         """
         if mode == 'redeem':
             scriptSig = self.dummy_scriptsig_redeem
+            pubkey = self.pub1ser
         elif mode == 'refund':
             scriptSig = self.dummy_scriptsig_refund
+            pubkey = self.pub2ser
         else:
             raise ValueError(mode)
 
@@ -261,14 +311,11 @@ class SplitContract:
             )
         return txin
 
-    def signtx(self, tx, privatekey):
+    def signtx(self, tx):
         """generic tx signer for compressed pubkey"""
-        keypairs = {self.pub1ser.hex() : (self.priv1.to_bytes(32, 'big'), True),
-                    self.pub2ser.hex() : (self.priv2.to_bytes(32, 'big'), True),
-                    }
-        tx.sign(keypairs)
+        tx.sign(self.keypairs)
 
-    def completetx(self, tx, secret):
+    def completetx(self, tx):
         """
         Completes transaction by creating scriptSig. You need to sign the
         transaction before using this (see `signtx`). `secret` may be bytes
@@ -282,25 +329,24 @@ class SplitContract:
             if txin['address'] != self.address:
                 continue
             sig = txin['signatures'][0]
-            sig = bytes.fromhex(sig)
             if not sig:
                 continue
-            # construct the correct scriptsig
-            if secret:
-                if txin['scriptSig'] != self.dummy_scriptsig_redeem:
-                    continue
+            sig = bytes.fromhex(sig)
+
+            if txin['scriptSig'] == self.dummy_scriptsig_redeem:
                 script = [
-                    len(secret), secret,
                     len(sig), sig,
                     OpCodes.OP_1,
                     0x4c, len(self.redeemscript), self.redeemscript,
                     ]
-            else:
-                if txin['scriptSig'] != self.dummy_scriptsig_refund:
-                    continue
+            elif txin['scriptSig'] == self.dummy_scriptsig_refund:
                 script = [
                     len(sig), sig,
                     OpCodes.OP_0,
                     0x4c, len(self.redeemscript), self.redeemscript,
                     ]
+            else:
+                # already completed..?
+                continue
             txin['scriptSig'] = joinbytes(script).hex()
+        tx.raw = tx.serialize()
