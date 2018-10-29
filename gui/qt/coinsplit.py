@@ -264,8 +264,6 @@ class SplitContract:
             self.pub2ser.hex() : (self.priv2.to_bytes(32, 'big'), True),
             }
 
-        OP_CHECKDATASIG = 0xba
-        OP_CHECKDATASIGVERIFY = 0xbb
         cds_sig = b'\0'*70
         cds_msg = b'Split me baby one more time!'
         cds_pubkey = b'\x03' + b'\0'*32
@@ -275,7 +273,7 @@ class SplitContract:
                 len(cds_sig), cds_sig,
                 len(cds_msg), cds_msg,
                 len(cds_pubkey), cds_pubkey,
-                OP_CHECKDATASIGVERIFY,
+                OpCodes.OP_CHECKDATASIGVERIFY,
                 len(self.pub1ser), self.pub1ser,
             OpCodes.OP_ELSE,
                 #this branch can run on any chain
