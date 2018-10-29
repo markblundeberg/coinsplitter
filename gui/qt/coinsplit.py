@@ -1,8 +1,10 @@
 
 import time
+import webbrowser
+import hashlib
 
 from electroncash.i18n import _
-from electroncash.address import Address, ScriptOutput
+from electroncash.address import OpCodes, Address, Script, hash160, ScriptOutput
 from electroncash.transaction import Transaction,TYPE_ADDRESS
 import electroncash.web as web
 
@@ -29,20 +31,92 @@ class SplitDialog(QDialog, MessageBoxMixin):
         QDialog.__init__(self, parent=main_window)
 
         self.main_window = main_window
-        self.address = address
+        self.address = address  # address to spend from
+        self.password = password # save for funding
 
         self.wallet = main_window.wallet
         self.config = main_window.config
 
-        self.setWindowTitle(_("Coin Spit"))
+        # Extract private key
+        index = self.wallet.get_address_index(address)
+        key = self.wallet.keystore.get_private_key(index, password)
+        privkey = int.from_bytes(key[0],'big')
+
+        # Create contract derived from private key
+        self.contract = SplitContract(privkey)
+
+        self.setWindowTitle(_("OP_CHECKDATASIG Coin Splitting"))
 
         self.setMinimumWidth(800)
 
         vbox = QVBoxLayout()
         self.setLayout(vbox)
-        l = QLabel(_("Address") + ": " + address.to_ui_string())
+        l = QLabel(_("Master address") + ": " + address.to_ui_string())
         l.setTextInteractionFlags(Qt.TextSelectableByMouse)
         vbox.addWidget(l)
+
+        l = QLabel(_("Split contract") + ": " + self.contract.address.to_ui_string())
+        l.setTextInteractionFlags(Qt.TextSelectableByMouse)
+        vbox.addWidget(l)
+
+
+        hbox = QHBoxLayout()
+        vbox.addLayout(hbox)
+
+        addr_URL = web.BE_URL(self.config, 'addr', self.contract.address)
+        b = QPushButton(_("View on block explorer"))
+        b.clicked.connect(lambda: webbrowser.open(addr_URL))
+        hbox.addWidget(b)
+        if not addr_URL:
+            b.setDisabled(True)
+
+        b = QPushButton(_("View redeem script..."))
+        b.clicked.connect(self.showscript)
+        hbox.addWidget(b)
+
+        hbox.addStretch(1)
+
+
+        hbox = QHBoxLayout()
+        vbox.addLayout(hbox)
+
+        l = QLabel(_("TXID of funding:"))
+        hbox.addWidget(l)
+
+        b = QPushButton(_("Fund new"))
+        #b.clicked.connect(lambda: XXX)
+        hbox.addWidget(b)
+
+        hbox.addStretch(1)
+
+
+        self.fund_txid_e = QLineEdit()
+        vbox.addWidget(self.fund_txid_e)
+
+
+        hbox = QHBoxLayout()
+        vbox.addLayout(hbox)
+
+        b = QPushButton(_("Redeem with split (CDS chain)"))
+        #b.clicked.connect(lambda: XXX)
+        hbox.addWidget(b)
+
+        b = QPushButton(_("Refund (any chain)"))
+        #b.clicked.connect(lambda: XXX)
+        hbox.addWidget(b)
+
+        hbox.addStretch(1)
+
+
+        l = QLabel(_("Redeem/refund options:"))
+        vbox.addWidget(l)
+
+        self.option1_rb = QRadioButton(_("Only spend spliting coin"))
+        vbox.addWidget(self.option1_rb)
+        self.option2_rb = QRadioButton(_("Include all coins from address") + " %.10s..."%(address.to_ui_string()))
+        vbox.addWidget(self.option2_rb)
+        self.option3_rb = QRadioButton(_("Include all coins from wallet") + ' "%s"'%(self.wallet.basename()))
+        vbox.addWidget(self.option3_rb)
 
     def closeEvent(self, event):
         event.accept()
@@ -53,6 +127,49 @@ class SplitDialog(QDialog, MessageBoxMixin):
 
     def reject(self,):
         self.close()
+
+    def showscript(self,):
+        if not self.contract:
+            return
+        script = self.contract.redeemscript
+        schex = script.hex()
+
+        try:
+            sco = ScriptOutput(script)
+            decompiled = sco.to_ui_string()
+        except:
+            decompiled = "decompiling error"
+
+        d = QDialog(self)
+        d.setWindowTitle(_('Split contract script'))
+        d.setMinimumSize(610, 490)
+
+        layout = QGridLayout(d)
+
+        script_bytes_e = QTextEdit()
+        layout.addWidget(QLabel(_('Bytes')), 1, 0)
+        layout.addWidget(script_bytes_e, 1, 1)
+        script_bytes_e.setText(schex)
+        script_bytes_e.setReadOnly(True)
+        #layout.setRowStretch(2,3)
+
+        decompiled_e = QTextEdit()
+        layout.addWidget(QLabel(_('ASM')), 3, 0)
+        layout.addWidget(decompiled_e, 3, 1)
+        decompiled_e.setText(decompiled)
+        decompiled_e.setReadOnly(True)
+        #layout.setRowStretch(3,1)
+
+        hbox = QHBoxLayout()
+
+        b = QPushButton(_("Close"))
+        b.clicked.connect(d.accept)
+        hbox.addWidget(b)
+
+        layout.addLayout(hbox, 4, 1)
+#        d.setWindowModality(Qt.WindowModal)
+        d.show()
+        d.exec_()
 
 
 from ecdsa.ecdsa import curve_secp256k1, generator_secp256k1
@@ -73,8 +190,15 @@ class SplitContract:
         G = generator_secp256k1
 
         # make two derived private keys
-        self.priv1 = (0xaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa * master_privkey) % p
-        self.priv2 = (0xbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb * master_privkey) % p
+        # hard derivation:
+        x = int.from_bytes(hashlib.sha512(b'Split1' + master_privkey.to_bytes(32, 'big')).digest(), 'big')
+        self.priv1 = 1 + (x % (p-1))
+        x = int.from_bytes(hashlib.sha512(b'Split2' + master_privkey.to_bytes(32, 'big')).digest(), 'big')
+        self.priv2 = 1 + (x % (p-1))
+
+        # soft derivation:
+        #self.priv1 = (0xaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa * master_privkey) % p
+        #self.priv2 = (0xbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb * master_privkey) % p
 
         # generate compressed pubkeys
         self.pub1ser = point_to_ser(self.priv1 * G, True)
@@ -92,10 +216,10 @@ class SplitContract:
                 len(cds_msg), cds_msg,
                 len(cds_pubkey), cds_pubkey,
                 OP_CHECKDATASIGVERIFY,
-                len(pub1ser), pub1ser
+                len(self.pub1ser), self.pub1ser,
             OpCodes.OP_ELSE,
                 #this branch can run on any chain
-                len(pub2ser), pub2ser
+                len(self.pub2ser), self.pub2ser,
             OpCodes.OP_ENDIF,
             OpCodes.OP_CHECKSIG
             ])
