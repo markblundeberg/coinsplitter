@@ -122,7 +122,7 @@ class SplitDialog(QDialog, MessageBoxMixin):
         l = QLabel(_("Redeem/refund options:"))
         vbox.addWidget(l)
 
-        self.option1_rb = QRadioButton(_("Only spend spliting coin"))
+        self.option1_rb = QRadioButton(_("Only spend splitting coin"))
         vbox.addWidget(self.option1_rb)
         self.option1_rb.setChecked(True)
         self.option2_rb = QRadioButton(_("Include all coins from address") + " %.10s..."%(address.to_ui_string()))
