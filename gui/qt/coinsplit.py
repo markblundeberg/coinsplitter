@@ -77,6 +77,11 @@ class SplitDialog(QDialog, MessageBoxMixin):
         hbox.addStretch(1)
 
 
+        b = QPushButton(_("Fund split contract..."))
+        b.clicked.connect(self.fund)
+        vbox.addWidget(b)
+
+
         grid = QGridLayout()
         vbox.addLayout(grid)
 
@@ -100,12 +105,9 @@ class SplitDialog(QDialog, MessageBoxMixin):
         self.fund_value_e.setMaximumWidth(50)
         grid.addWidget(self.fund_value_e, 1, 2)
 
+
         hbox = QHBoxLayout()
         vbox.addLayout(hbox)
-
-        b = QPushButton(_("Fund new"))
-        b.clicked.connect(self.fund)
-        hbox.addWidget(b)
 
         b = QPushButton(_("Redeem with split (CDS chain)"))
         b.clicked.connect(lambda: self.spend('redeem'))
@@ -115,8 +117,7 @@ class SplitDialog(QDialog, MessageBoxMixin):
         b.clicked.connect(lambda: self.spend('refund'))
         hbox.addWidget(b)
 
-        hbox.addStretch(1)
-
+        #hbox.addStretch(1)
 
         l = QLabel(_("Redeem/refund options:"))
         vbox.addWidget(l)
