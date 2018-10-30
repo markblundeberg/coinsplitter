@@ -288,9 +288,10 @@ class SplitContract:
             self.pub2ser.hex() : (self.priv2.to_bytes(32, 'big'), True),
             }
 
-        cds_sig = b'\0'*70
-        cds_msg = b'Split me baby one more time!'
-        cds_pubkey = b'\x03' + b'\0'*32
+        # params from ABC 0.18.2 unit tests
+        cds_sig = bytes.fromhex('30440220256c12175e809381f97637933ed6ab97737d263eaaebca6add21bced67fd12a402205ce29ecc1369d6fc1b51977ed38faaf41119e3be1d7edfafd7cfaf0b6061bd07')
+        cds_msg = b''
+        cds_pubkey = bytes.fromhex('038282263212c609d9ea2a6e3e172de238d8c39cabd5ac1ca10646e23fd5f51508')
         self.redeemscript = joinbytes([
             OpCodes.OP_IF,
                 #this branch can only run on CDS-supporting chain
