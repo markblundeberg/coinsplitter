@@ -333,7 +333,7 @@ class SplitContract:
         txin = dict(
             prevout_hash = prevout_hash,
             prevout_n = prevout_n,
-            sequence = 0,
+            sequence = 0xffffffff,
             scriptSig = scriptSig,
 
             type = 'unknown',
