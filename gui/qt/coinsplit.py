@@ -264,20 +264,20 @@ class SplitContract:
     OP_CHECKDATASIGVERIFY, with backup clause for recovering dust on non-supporting
     chains."""
     def __init__(self, master_privkey):
-        p = curve_secp256k1.p()
         G = generator_secp256k1
+        order = G.order()
 
         # make two derived private keys (integers between 1 and p-1 inclusive)
 
         # hard derivation (irreversible):
         x = int.from_bytes(hashlib.sha512(b'Split1' + master_privkey.to_bytes(32, 'big')).digest(), 'big')
-        self.priv1 = 1 + (x % (p-1))
+        self.priv1 = 1 + (x % (order-1))
         x = int.from_bytes(hashlib.sha512(b'Split2' + master_privkey.to_bytes(32, 'big')).digest(), 'big')
-        self.priv2 = 1 + (x % (p-1))
+        self.priv2 = 1 + (x % (order-1))
 
         # soft derivation (reversible):
-        #self.priv1 = (0xaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa * master_privkey) % p
-        #self.priv2 = (0xbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb * master_privkey) % p
+        #self.priv1 = (0xaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa * master_privkey) % order
+        #self.priv2 = (0xbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb * master_privkey) % order
 
         # generate compressed pubkeys
         self.pub1ser = point_to_ser(self.priv1 * G, True)
