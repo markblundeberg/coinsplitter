@@ -262,13 +262,13 @@ class SplitContract:
 
         # make two derived private keys (integers between 1 and p-1 inclusive)
 
-        # hard derivation:
+        # hard derivation (irreversible):
         x = int.from_bytes(hashlib.sha512(b'Split1' + master_privkey.to_bytes(32, 'big')).digest(), 'big')
         self.priv1 = 1 + (x % (p-1))
         x = int.from_bytes(hashlib.sha512(b'Split2' + master_privkey.to_bytes(32, 'big')).digest(), 'big')
         self.priv2 = 1 + (x % (p-1))
 
-        # soft derivation:
+        # soft derivation (reversible):
         #self.priv1 = (0xaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa * master_privkey) % p
         #self.priv2 = (0xbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb * master_privkey) % p
 
@@ -376,4 +376,5 @@ class SplitContract:
                 # already completed..?
                 continue
             txin['scriptSig'] = joinbytes(script).hex()
+        # need to update the raw, otherwise weird stuff happens.
         tx.raw = tx.serialize()
