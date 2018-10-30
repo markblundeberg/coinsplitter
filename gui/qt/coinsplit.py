@@ -129,6 +129,12 @@ class SplitDialog(QDialog, MessageBoxMixin):
         self.option3_rb = QRadioButton(_("Include all coins from wallet") + ' "%s"'%(self.wallet.basename()))
         vbox.addWidget(self.option3_rb)
 
+        l = QLabel(_("Redeem/refund output address:"))
+        vbox.addWidget(l)
+        self.redeem_address_e = QLineEdit()
+        self.redeem_address_e.setText(self.address.to_full_ui_string())
+        vbox.addWidget(self.redeem_address_e)
+
     def closeEvent(self, event):
         event.accept()
         try:
@@ -207,7 +213,7 @@ class SplitDialog(QDialog, MessageBoxMixin):
         value = int(self.fund_value_e.text())
         locktime = 0
         estimate_fee = self.config.estimate_fee
-        out_addr = self.address
+        out_addr = Address.from_string(self.redeem_address_e.text())
 
         # generate the special spend
         inp = self.contract.makeinput(prevout_hash, prevout_n, value, mode)
