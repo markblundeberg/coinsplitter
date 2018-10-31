@@ -213,7 +213,7 @@ class SplitDialog(QDialog, MessageBoxMixin):
         prevout_n = int(self.fund_txout_e.text())
         value = int(self.fund_value_e.text())
         locktime = 0
-        estimate_fee = self.config.estimate_fee
+        estimate_fee = lambda x:(1*x)
         out_addr = Address.from_string(self.redeem_address_e.text())
 
         # generate the special spend
