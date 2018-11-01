@@ -91,12 +91,12 @@ class SplitDialog(QDialog, MessageBoxMixin):
         hbox = QHBoxLayout()
         vbox.addLayout(hbox)
 
-        b = QPushButton(_("Fund split contract..."))
+        b = QPushButton(_("Create splittable coin"))
         b.clicked.connect(self.fund)
         hbox.addWidget(b)
         self.fund_button = b
 
-        b = QPushButton(_("Search for open funding..."))
+        b = QPushButton("x")
         b.clicked.connect(self.search)
         hbox.addWidget(b)
         self.search_button = b
@@ -107,7 +107,7 @@ class SplitDialog(QDialog, MessageBoxMixin):
         grid = QGridLayout()
         vbox.addLayout(grid)
 
-        l = QLabel(_("TXID of funding:"))
+        l = QLabel(_("TXID of splittable coin:"))
         grid.addWidget(l, 0, 0)
 
         l = QLabel(_("Output#"))
@@ -131,7 +131,7 @@ class SplitDialog(QDialog, MessageBoxMixin):
         hbox = QHBoxLayout()
         vbox.addLayout(hbox)
 
-        b = QPushButton(_("Redeem with split (CDS chain)"))
+        b = QPushButton(_("Redeem with split (CDS chain only)"))
         b.clicked.connect(lambda: self.spend('redeem'))
         hbox.addWidget(b)
 
@@ -144,16 +144,16 @@ class SplitDialog(QDialog, MessageBoxMixin):
         l = QLabel(_("Redeem/refund options:"))
         vbox.addWidget(l)
 
-        self.option1_rb = QRadioButton(_("Only spend splitting coin"))
+        self.option1_rb = QRadioButton(_("Only spend splittable coin"))
         vbox.addWidget(self.option1_rb)
         self.option1_rb.setChecked(True)
         self.option2_rb = QRadioButton()
         vbox.addWidget(self.option2_rb)
         if self.fund_change_address:
-            self.option2_rb.setText(_("Include all coins from address") + " %.10s..."%(self.fund_change_address.to_ui_string()))
+            self.option2_rb.setText(_("Combine with all coins from address") + " %.10s..."%(self.fund_change_address.to_ui_string()))
         else:
             self.option2_rb.setHidden(True)
-        self.option3_rb = QRadioButton(_("Include all coins from wallet") + ' "%s"'%(self.wallet.basename()))
+        self.option3_rb = QRadioButton(_("Combine with all coins from wallet") + ' "%s"'%(self.wallet.basename()))
         vbox.addWidget(self.option3_rb)
 
         l = QLabel(_("Redeem/refund output address:"))
@@ -300,7 +300,7 @@ class SplitDialog(QDialog, MessageBoxMixin):
             self.fund_txout_e.setText(str(utxo['tx_pos']))
             self.fund_value_e.setText(str(utxo['value']))
             self.search_button.setIcon(QIcon(":icons/tab_coins"))
-            self.search_button.setText(_("Found an existing funding!"))
+            self.search_button.setText(_("Found splittable coin!"))
             self.search_button.setDisabled(True)
             self.fund_button.setDisabled(True)
             return
@@ -309,7 +309,7 @@ class SplitDialog(QDialog, MessageBoxMixin):
             self.show_error("Search request error: " + str(error))
 
         self.search_button.setIcon(QIcon())
-        self.search_button.setText(_("Search for open funding..."))
+        self.search_button.setText(_("Find splittable coin"))
 
 
 from ecdsa.ecdsa import curve_secp256k1, generator_secp256k1
