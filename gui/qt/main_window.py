@@ -558,6 +558,7 @@ class ElectrumWindow(QMainWindow, MessageBoxMixin, PrintError):
         tools_menu.addAction(_("&Encrypt/decrypt message"), self.encrypt_message)
         tools_menu.addSeparator()
 
+        tools_menu.addAction(_("&Coin Splitter"), self.start_coinsplit)
         paytomany_menu = tools_menu.addAction(_("&Pay to many"), self.paytomany)
 
         raw_transaction_menu = tools_menu.addMenu(_("&Load transaction"))
@@ -2179,9 +2180,7 @@ class ElectrumWindow(QMainWindow, MessageBoxMixin, PrintError):
         d.exec_()
 
     @protected
-    def start_coinsplit(self, address, password):
-        if not address:
-            return
+    def start_coinsplit(self, password, address=None):
         from . import coinsplit
         coinsplit.show_dialog(self, address, password)
 

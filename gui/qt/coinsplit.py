@@ -33,14 +33,25 @@ class SplitDialog(QDialog, MessageBoxMixin):
         QDialog.__init__(self, parent=main_window)
 
         self.main_window = main_window
-        self.address = address  # address to spend from
-        self.password = password # save for funding
-
         self.wallet = main_window.wallet
         self.config = main_window.config
 
+        #self.address = address  # address to spend from
+        self.password = password # save for funding
+
+        if address:
+            self.fund_domain = [address]
+            self.fund_change_address = address
+            self.default_redeem_address = address
+            self.entropy_address = address
+        else:
+            self.fund_domain = None
+            self.fund_change_address = None
+            self.default_redeem_address = self.wallet.get_unused_address()
+            self.entropy_address = self.wallet.get_addresses()[0]
+
         # Extract private key
-        index = self.wallet.get_address_index(address)
+        index = self.wallet.get_address_index(self.entropy_address)
         key = self.wallet.keystore.get_private_key(index, password)
         privkey = int.from_bytes(key[0],'big')
 
@@ -49,11 +60,9 @@ class SplitDialog(QDialog, MessageBoxMixin):
 
         self.setWindowTitle(_("OP_CHECKDATASIG Coin Splitting"))
 
-#        self.setMinimumWidth(800)
-
         vbox = QVBoxLayout()
         self.setLayout(vbox)
-        l = QLabel(_("Master address") + ": " + address.to_ui_string())
+        l = QLabel(_("Master address") + ": " + self.entropy_address.to_ui_string())
         l.setTextInteractionFlags(Qt.TextSelectableByMouse)
         vbox.addWidget(l)
 
@@ -138,15 +147,19 @@ class SplitDialog(QDialog, MessageBoxMixin):
         self.option1_rb = QRadioButton(_("Only spend splitting coin"))
         vbox.addWidget(self.option1_rb)
         self.option1_rb.setChecked(True)
-        self.option2_rb = QRadioButton(_("Include all coins from address") + " %.10s..."%(address.to_ui_string()))
+        self.option2_rb = QRadioButton()
         vbox.addWidget(self.option2_rb)
+        if self.fund_change_address:
+            self.option2_rb.setText(_("Include all coins from address") + " %.10s..."%(self.fund_change_address.to_ui_string()))
+        else:
+            self.option2_rb.setHidden(True)
         self.option3_rb = QRadioButton(_("Include all coins from wallet") + ' "%s"'%(self.wallet.basename()))
         vbox.addWidget(self.option3_rb)
 
         l = QLabel(_("Redeem/refund output address:"))
         vbox.addWidget(l)
         self.redeem_address_e = QLineEdit()
-        self.redeem_address_e.setText(self.address.to_full_ui_string())
+        self.redeem_address_e.setText(self.default_redeem_address.to_full_ui_string())
         vbox.addWidget(self.redeem_address_e)
 
         self.search_done_signal.connect(self.search_done)
@@ -209,9 +222,9 @@ class SplitDialog(QDialog, MessageBoxMixin):
         outputs = [(TYPE_ADDRESS, self.contract.address, 1000)]
         try:
             tx = self.wallet.mktx(outputs, self.password, self.config,
-                                domain=[self.address], change_addr=self.address)
+                                  domain=self.fund_domain, change_addr=self.fund_change_address)
         except NotEnoughFunds:
-            return self.show_critical(_("Not enough funds on address %s to fund smart contract.")%(self.address.to_ui_string()))
+            return self.show_critical(_("Not enough balance to fund smart contract."))
         except Exception as e:
             return self.show_critical(repr(e))
         for i,out in enumerate(tx.outputs()):
@@ -242,7 +255,7 @@ class SplitDialog(QDialog, MessageBoxMixin):
         if self.option1_rb.isChecked():
             domain = []
         elif self.option2_rb.isChecked():
-            domain = [self.address]
+            domain = [self.fund_change_address]
         elif self.option3_rb.isChecked():
             domain = None
         else:
