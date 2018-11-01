@@ -27,6 +27,8 @@ def show_dialog(*args, **kwargs):
     d.show()
 
 class SplitDialog(QDialog, MessageBoxMixin):
+    search_done_signal = pyqtSignal(object)
+
     def __init__(self, main_window, address, password):
         QDialog.__init__(self, parent=main_window)
 
@@ -77,9 +79,20 @@ class SplitDialog(QDialog, MessageBoxMixin):
         hbox.addStretch(1)
 
 
+        hbox = QHBoxLayout()
+        vbox.addLayout(hbox)
+
         b = QPushButton(_("Fund split contract..."))
         b.clicked.connect(self.fund)
-        vbox.addWidget(b)
+        hbox.addWidget(b)
+        self.fund_button = b
+
+        b = QPushButton(_("Search for open funding..."))
+        b.clicked.connect(self.search)
+        hbox.addWidget(b)
+        self.search_button = b
+
+        hbox.addStretch(1)
 
 
         grid = QGridLayout()
@@ -135,6 +148,9 @@ class SplitDialog(QDialog, MessageBoxMixin):
         self.redeem_address_e = QLineEdit()
         self.redeem_address_e.setText(self.address.to_full_ui_string())
         vbox.addWidget(self.redeem_address_e)
+
+        self.search_done_signal.connect(self.search_done)
+        self.search()
 
     def closeEvent(self, event):
         event.accept()
@@ -249,6 +265,39 @@ class SplitDialog(QDialog, MessageBoxMixin):
         self.contract.completetx(tx)
 
         self.main_window.show_transaction(tx)
+
+    def search(self,):
+        self.search_button.setIcon(QIcon(":icons/status_waiting"))
+        self.search_button.setText(_("Searching..."))
+
+        self.wallet.network.send([("blockchain.scripthash.listunspent",
+                                  [self.contract.address.to_scripthash_hex()]),
+                                  ],
+                                 self.search_done_signal.emit)
+
+    def search_done(self, response):
+        error = response.get('error')
+        result = response.get('result')
+        params = response.get('params')
+
+        if result and not error:
+            # just grab first utxo
+            utxo = result[0]
+            self.fund_txid_e.setText(utxo['tx_hash'])
+            self.fund_txout_e.setText(str(utxo['tx_pos']))
+            self.fund_value_e.setText(str(utxo['value']))
+            self.search_button.setIcon(QIcon(":icons/tab_coins"))
+            self.search_button.setText(_("Found an existing funding!"))
+            self.search_button.setDisabled(True)
+            self.fund_button.setDisabled(True)
+            return
+
+        if error:
+            self.show_error("Search request error: " + str(error))
+
+        self.search_button.setIcon(QIcon())
+        self.search_button.setText(_("Search for open funding..."))
+
 
 from ecdsa.ecdsa import curve_secp256k1, generator_secp256k1
 from ecdsa.curves import SECP256k1
