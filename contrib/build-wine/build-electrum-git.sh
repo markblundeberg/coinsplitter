@@ -103,7 +103,13 @@ cd dist
 mv electrum-setup.exe $NAME_ROOT-$VERSION-setup.exe
 
 cd ../../..
-python3 setup.py sdist --format=zip,gztar
-
+if [ -d packages -a -e gui/qt/icons_rc.py ] ; then
+    python3 setup.py sdist --format=zip,gztar
+    sha256sum gui/qt/icons_rc.py
+else
+    echo "Not creating source distribution since packages or icons file missing."
+    echo "Run './contrib/make_packages' and/or 'pyrcc5 icons.qrc -o gui/qt/icons_rc.py'"
+    echo "Then you can run 'python3 setup.py sdist --format=zip,gztar'"
+fi
 
 echo "Done."
