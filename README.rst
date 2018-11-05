@@ -1,3 +1,30 @@
+CHECKDATASIG Coin splitter
+==========================
+
+::
+
+  Licence: MIT Licence
+  Author: Mark B. Lundeberg
+  Language: Python
+
+This is a special release of Electron Cash augmented with a coin-splitting tool
+for the November 2018 Bitcoin Cash hard fork. The tool can be started via:
+
+* Tools menu | Coin splitter, or,
+* Addresses tab: right-click on an address | Split coins.
+
+By using this tool, you can create transactions built on a history involving
+the new OP_CHECKDATASIGVERIFY. Such transactions are impossible to replay on
+other nodes / chains that do not support this opcode.
+
+A detailed usage guide can be found at:
+https://docs.google.com/document/d/1Ix6T8tOnxUdaR8sOW8gIhXB26LIR_c4nkqBfP7ScYRo/
+
+For the technically inclined / curious, the primary code additions appear in
+`this file <gui/qt/coinsplit.py>`_.
+
+*Standard instructions for Electron Cash (the base software) follow:*
+
 Electron Cash - Lightweight Bitcoin Cash client
 =====================================
 
