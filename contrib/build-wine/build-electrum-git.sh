@@ -3,6 +3,8 @@
 NAME_ROOT=electrum
 PYTHON_VERSION=3.5.4
 
+CHECKOUT_TAG=3.3.1
+
 # These settings probably don't need any change
 export WINEPREFIX=/opt/wine64
 export PYTHONDONTWRITEBYTECODE=1
@@ -54,10 +56,12 @@ pushd electrum
 
 if [ ! -z "$1" ]; then
     git checkout $1
+else
+    git checkout "$CHECKOUT_TAG"
 fi
 
 VERSION=`git describe --tags`
-echo "Last commit: $VERSION"
+echo "Version to release: $VERSION"
 find -exec touch -d '2000-11-11T11:11:11+00:00' {} +
 popd
 
