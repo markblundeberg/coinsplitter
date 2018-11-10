@@ -561,6 +561,7 @@ class ElectrumWindow(QMainWindow, MessageBoxMixin, PrintError):
 
         if not isinstance(self.wallet, Multisig_Wallet) and not self.wallet.is_watching_only():
             tools_menu.addAction(_("&Coin Splitter"), self.start_coinsplit)
+            tools_menu.addAction(_("&Coin Splitter (MUL)"), self.start_coinsplit_mul)
         paytomany_menu = tools_menu.addAction(_("&Pay to many"), self.paytomany)
 
         raw_transaction_menu = tools_menu.addMenu(_("&Load transaction"))
@@ -2185,6 +2186,11 @@ class ElectrumWindow(QMainWindow, MessageBoxMixin, PrintError):
     def start_coinsplit(self, password, address=None):
         from . import coinsplit
         coinsplit.show_dialog(self, address, password)
+    @protected
+
+    def start_coinsplit_mul(self, password, address=None):
+        from . import coinsplitmul
+        coinsplitmul.show_dialog(self, address, password)
 
     msg_sign = _("Signing with an address actually means signing with the corresponding "
                 "private key, and verifying with the corresponding public key. The "
