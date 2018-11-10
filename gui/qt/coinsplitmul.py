@@ -267,7 +267,7 @@ class SplitDialog(QDialog, MessageBoxMixin):
         self.fund_txid_e.setText(tx.txid())
         self.fund_txid_e.setCursorPosition(0)
         show_transaction(tx, self.main_window,
-                         "Make splittable coin (master:%s)"%(self.entropy_address.to_ui_string()),
+                         "Make splittable coin MUL (master:%s)"%(self.entropy_address.to_ui_string()),
                          prompt_if_unsaved=True)
         self.changed_coin()
 
