@@ -106,6 +106,7 @@ class ElectrumWindow(QMainWindow, MessageBoxMixin, PrintError):
 
     def __init__(self, gui_object, wallet):
         QMainWindow.__init__(self)
+        self.wallet = wallet
 
         self.gui_object = gui_object
         self.config = config = gui_object.config
@@ -558,7 +559,8 @@ class ElectrumWindow(QMainWindow, MessageBoxMixin, PrintError):
         tools_menu.addAction(_("&Encrypt/decrypt message"), self.encrypt_message)
         tools_menu.addSeparator()
 
-        tools_menu.addAction(_("&Coin Splitter"), self.start_coinsplit)
+        if not isinstance(self.wallet, Multisig_Wallet) and not self.wallet.is_watching_only():
+            tools_menu.addAction(_("&Coin Splitter"), self.start_coinsplit)
         paytomany_menu = tools_menu.addAction(_("&Pay to many"), self.paytomany)
 
         raw_transaction_menu = tools_menu.addMenu(_("&Load transaction"))
