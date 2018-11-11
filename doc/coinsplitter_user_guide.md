@@ -4,6 +4,19 @@ Author: Mark B. Lundeberg
 
 Repository: [https://github.com/markblundeberg/coinsplitter_checkdatasig](https://github.com/markblundeberg/coinsplitter_checkdatasig)
 
+* [Description](#description)
+* [Limitations](#limitations)
+* [Installing](#installing)
+* [Usage](#usage)
+    * [Steps:](#steps)
+    * [You can do most of the steps before the fork!](#you-can-do-most-of-the-steps-before-the-fork)
+    * [Privacy mode](#privacy-mode)
+    * [Splitting other wallets (hardware / multi-sig / cold (watching-only) / non-Electron Cash)](#splitting-other-wallets-hardware--multi-sig--cold-watching-only--non-electron-cash)
+    * [OP_MUL splitter](#op_mul-splitter)
+* [Visual example (via screenshots)](#visual-example-via-screenshots)
+    * [From Tools menu](#from-tools-menu)
+    * [From Address list](#from-address-list)
+
 ## Description
 This software is a variant of Electron Cash that has the added ability to split coins between two different Bitcoin Cash consensus rulesets that will exist starting on November 15, 2018.
 
@@ -20,6 +33,7 @@ Different node software will follow different chains (under default config):
  - Non-CDS chains: Older versions of ABC, BU, XT; all SV versions.
 
 ## Limitations
+
 This tool does not work directly with hardware wallets. To split coins with hardware wallets, you should send already-split coins (e.g., created using this tool with a software wallet, or gotten from someone else) to the hardware wallet, and then mix those already-split coins together with your hardware wallet’s coins.
 
 This tool only directly creates a **one-way split**. You can start immediately transacting with the post-split CDS-chain coins, but not the non-CDS coins. If you do use the associated coins on non-CDS chains, this means that you are creating conflicting transactions that could in principle be replayed back onto the CDS chain, during a block reorganization. Therefore, the non-CDS coins should be left to sit until you are sure that a block reorganization is unlikely. Alternatively, you may achieve a two-way split by asking someone else to send you a coin that is already incompatible with the CDS chain, and mix that together with your non-CDS coins; this allows you to also immediately make non-CDS transactions.
@@ -29,7 +43,7 @@ This tool only directly creates a **one-way split**. You can start immediately t
 
 ## Installing
 
-You can download packaged versions of the tool (Linux/Win) at [https://github.com/markblundeberg/coinsplitter_checkdatasig/releases/latest](https://github.com/markblundeberg/coinsplitter_checkdatasig/releases/latest)
+You can download packaged versions of the tool (Linux/Win) at [https://github.com/markblundeberg/coinsplitter_checkdatasig/releases](https://github.com/markblundeberg/coinsplitter_checkdatasig/releases/latest)
 The file checksums have been signed by me (Mark Lundeberg), PGP key [0x7C6BEB5309693C85E3F51DFBDC1959C1BE5BF112](http://pgp.mit.edu/pks/lookup?search=0x7C6BEB5309693C85E3F51DFBDC1959C1BE5BF112&op=index). The files are used in the same way as you would use Electron Cash.
 
 Source + README at [https://github.com/markblundeberg/coinsplitter_checkdatasig](https://github.com/markblundeberg/coinsplitter_checkdatasig).
@@ -63,7 +77,29 @@ Steps 1-4 can actually be performed prior to the fork. In that case, the splitta
 ### Privacy mode
 
 If you prefer to not connect together your wallet addresses, it’s also possible to open the coin splitting tool by right clicking on an address from the Addresses tab. This creates a per-address splitting contract and gives the option of only combining coins that reside on that address.
-
+
+### Splitting other wallets (hardware / multi-sig / cold (watching-only) / non-Electron Cash)
+
+The tool is designed to work with a standard non-multisig wallet that has possession of private keys. This is done so that the splitting contract is deterministically derived and thus is fully recoverable so long as the wallet is recovered using the mnemonic. Unfortunately it means the tool cannot work directly with other wallet types. However, an indirect approach is still fine.
+
+To split coins in a hardware wallet using this tool, you will have to *manually perform the funding and mixing steps*:
+
+1. Create a standard software wallet in Electron Cash -- you can save the mnemonic somewhere low-security since you'll only be storing 1000 satoshis on this wallet.
+2. Open coin splitting tool.
+3. **Fund**! Select and copy the split contract address `bitcoincash:ppppppppp...` and sent 1000 sats to it, using your hardware wallet software. The 1000 sats can also come from any other wallet you own. Do not send less than 888 satoshis as step 6 below will be impossible due to fee / dust limits.
+4. When it comes time to split, open the software wallet and the splitter tool again -- it should find that 1000 sat utxo that you made.
+5. Get a receiving address from your hardware wallet like `bitcoincash:qzzzzzzzzz`. Enter that into the 'output address' field of the splitter tool.
+6. **Spend**! This sends a single tiny split coin into your hardware wallet. The software wallet will now be empty.
+7. **Sweep** (Mix)! Use your hardware wallet software to sweep all coins (including the tiny split coin you just made). The result will be a single large split coin containing your entire wallet balance.
+
+The above approach keeps your hardware wallet coins secure, as it is not necessary at any point to move a large wallet balance out of the hardware wallet.
+The same logic works for multi-sig wallets, cold (watching-only) wallets, and really any kind of Bitcoin Cash wallet (non-Electron Cash).
+
+### OP_MUL splitter
+
+In recent releases of the tool, you can also fund another kind of split contract that uses OP_MUL -- this lets you do a one-way split of your coins on the post-hardfork SV chain, and if you're really careful about using this tool together with the OP_CHECKDATASIGVERIFY tool, then you can achieve a secure two-way split that is immune from any kind of replay attack.
+
+The downside of the OP_MUL approach is that *the funds on the splitter contract address cannot be recovered on other chains where OP_MUL is still disabled*. So, you definitely should not be sending more than 1000 satoshis to the address as they will be locked up on the ABC chain, until one day when OP_MUL is re-enabled there (this may happen in May 2019, but there are no guarantees).
 
 ## Visual example (via screenshots)
 
