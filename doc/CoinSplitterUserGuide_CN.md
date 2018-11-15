@@ -4,6 +4,8 @@
 
 ---
 
+English version: [coinsplitter_user_guide.md](./coinsplitter_user_guide.md)
+
 作者: *Mark B. Lundeberg*
 
 翻译者：赵斌BTC.com
