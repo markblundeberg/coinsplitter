@@ -11,7 +11,7 @@ Repository: [https://github.com/markblundeberg/coinsplitter_checkdatasig](https:
     * [Steps:](#steps)
     * [You can do most of the steps before the fork!](#you-can-do-most-of-the-steps-before-the-fork)
     * [Privacy mode](#privacy-mode)
-    * [Splitting other wallets (hardware / multi-sig / cold (watching-only) / non-Electron Cash)](#splitting-other-wallets-hardware--multi-sig--cold-watching-only--non-electron-cash)
+    * [Splitting other wallets (hardware / cold (watching-only) / non-Electron Cash)](#splitting-other-wallets-hardware--cold-watching-only--non-electron-cash)
     * [OP_MUL splitter](#op_mul-splitter)
 * [Visual example (via screenshots)](#visual-example-via-screenshots)
     * [From Tools menu](#from-tools-menu)
@@ -78,9 +78,9 @@ Steps 1-4 can actually be performed prior to the fork. In that case, the splitta
 
 If you prefer to not connect together your wallet addresses, it’s also possible to open the coin splitting tool by right clicking on an address from the Addresses tab. This creates a per-address splitting contract and gives the option of only combining coins that reside on that address.
 
-### Splitting other wallets (hardware / multi-sig / cold (watching-only) / non-Electron Cash)
+### Splitting other wallets (hardware / cold (watching-only) / non-Electron Cash)
 
-The tool is designed to work with a standard non-multisig wallet that has possession of private keys. This is done so that the splitting contract is deterministically derived and thus is fully recoverable so long as the wallet is recovered using the mnemonic. Unfortunately it means the tool cannot work directly with other wallet types. However, an indirect approach is still fine.
+The tool is designed to work with a standard wallet that has possession of private keys. This is done so that the splitting contract is deterministically derived and thus is fully recoverable so long as the wallet is recovered using the mnemonic. Unfortunately it means the tool cannot work directly with other wallet types. However, an indirect approach is still fine.
 
 To split coins in a hardware wallet using this tool, you will have to *manually perform the funding and mixing steps*:
 
@@ -92,8 +92,7 @@ To split coins in a hardware wallet using this tool, you will have to *manually 
 6. **Spend**! This sends a single tiny split coin into your hardware wallet. The software wallet will now be empty.
 7. **Sweep** (Mix)! Use your hardware wallet software to sweep all coins (including the tiny split coin you just made). The result will be a single large split coin containing your entire wallet balance.
 
-The above approach keeps your hardware wallet coins secure, as it is not necessary at any point to move a large wallet balance out of the hardware wallet.
-The same logic works for multi-sig wallets, cold (watching-only) wallets, and really any kind of Bitcoin Cash wallet (non-Electron Cash).
+The above approach keeps your hardware wallet coins secure, as it is not necessary at any point to move a large wallet balance out of the hardware wallet. The same logic works for cold (watching-only) wallets, or really any other kind of Bitcoin Cash wallet (non-Electron Cash).
 
 ### OP_MUL splitter
 
