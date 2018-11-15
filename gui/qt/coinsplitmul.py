@@ -7,6 +7,7 @@ from electroncash.i18n import _
 from electroncash.address import OpCodes, Address, Script, hash160, ScriptOutput
 from electroncash.transaction import Transaction,TYPE_ADDRESS
 import electroncash.web as web
+from electroncash.wallet import Multisig_Wallet
 
 from PyQt5.QtCore import *
 from PyQt5.QtGui import *
@@ -24,7 +25,6 @@ dialogs = []  # Otherwise python randomly garbage collects the dialogs...
 def show_dialog(*args, **kwargs):
     d = SplitDialog(*args, **kwargs)
     dialogs.append(d)
-    d.show()
 
 class SplitDialog(QDialog, MessageBoxMixin):
     search_done_signal = pyqtSignal(object)
@@ -52,8 +52,16 @@ class SplitDialog(QDialog, MessageBoxMixin):
 
         # Extract private key
         index = self.wallet.get_address_index(self.entropy_address)
-        key = self.wallet.keystore.get_private_key(index, password)
+        try:
+            key = self.wallet.keystore.get_private_key(index, password)
+        except:
+            self.close()
+            self.main_window.show_error(_("Coin splitter only works with wallets possessing private keys. See the User Guide for details on how to split other wallets' coins, at:") + "\nhttps://github.com/markblundeberg/coinsplitter_checkdatasig/blob/master/doc/coinsplitter_user_guide.md")
+            return
         privkey = int.from_bytes(key[0],'big')
+
+        if isinstance(self.wallet, Multisig_Wallet):
+            self.main_window.show_error("Multi-sig wallet support is partial.\nThe splitter coin itself is *not* multisig and belongs to you alone (it cannot be redeemed by other parties).")
 
         # Create contract derived from private key
         self.contract = SplitContract(privkey)
@@ -182,6 +190,7 @@ class SplitDialog(QDialog, MessageBoxMixin):
 
         self.search_done_signal.connect(self.search_done)
         self.search()
+        self.show()
 
     def closeEvent(self, event):
         event.accept()

@@ -174,9 +174,9 @@ class AddressList(MyTreeWidget):
             menu.addAction(_("Request payment"), lambda: self.parent.receive_at(addr))
             if self.wallet.can_export():
                 menu.addAction(_("Private key"), lambda: self.parent.show_private_key(addr))
+            menu.addAction(_("Split coins (CDS)"), lambda: self.parent.start_coinsplit(address=addr))
+            menu.addAction(_("Split coins (MUL)"), lambda: self.parent.start_coinsplit_mul(address=addr))
             if not is_multisig and not self.wallet.is_watching_only():
-                menu.addAction(_("Split coins (CDS)"), lambda: self.parent.start_coinsplit(address=addr))
-                menu.addAction(_("Split coins (MUL)"), lambda: self.parent.start_coinsplit_mul(address=addr))
                 menu.addAction(_("Sign/verify message"), lambda: self.parent.sign_verify_message(addr))
                 menu.addAction(_("Encrypt/decrypt message"), lambda: self.parent.encrypt_message(addr))
             if can_delete:

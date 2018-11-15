@@ -559,9 +559,8 @@ class ElectrumWindow(QMainWindow, MessageBoxMixin, PrintError):
         tools_menu.addAction(_("&Encrypt/decrypt message"), self.encrypt_message)
         tools_menu.addSeparator()
 
-        if not isinstance(self.wallet, Multisig_Wallet) and not self.wallet.is_watching_only():
-            tools_menu.addAction(_("&Coin Splitter (CDS)"), self.start_coinsplit)
-            tools_menu.addAction(_("&Coin Splitter (MUL)"), self.start_coinsplit_mul)
+        tools_menu.addAction(_("&Coin Splitter (CDS)"), self.start_coinsplit)
+        tools_menu.addAction(_("&Coin Splitter (MUL)"), self.start_coinsplit_mul)
         paytomany_menu = tools_menu.addAction(_("&Pay to many"), self.paytomany)
 
         raw_transaction_menu = tools_menu.addMenu(_("&Load transaction"))
