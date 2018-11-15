@@ -1,5 +1,7 @@
 # Coin Splitter User Guide
 
+中文版请访问这个链接：[CoinSplitterUserGuide_CN.md](./CoinSplitterUserGuide_CN.md)
+
 Author: Mark B. Lundeberg
 
 Repository: [https://github.com/markblundeberg/coinsplitter_checkdatasig](https://github.com/markblundeberg/coinsplitter_checkdatasig)
