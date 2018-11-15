@@ -19,6 +19,7 @@ other nodes / chains that do not support this opcode. In a secondary mode,
 you can also create OP_MUL-based splitting, though with some limitations.
 
 **A detailed usage guide can be found here:** `<doc/coinsplitter_user_guide.md>`_
+(中文版请访问这个链接：`<doc/CoinSplitterUserGuide_CN.md>`_)
 
 For the technically inclined / curious, the primary code additions appear in
 `this file <gui/qt/coinsplit.py>`_ and `this file <gui/qt/coinsplitmul.py>`_.
