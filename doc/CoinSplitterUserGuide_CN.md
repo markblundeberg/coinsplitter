@@ -5,8 +5,11 @@
 ---
 
 作者: *Mark B. Lundeberg*
+
 翻译者：赵斌BTC.com
+
 校准者：刘馥祎BTC.com
+
 Repository: [https://github.com/markblundeberg/coinsplitter_checkdatasig][1]
 
 * [描述](#描述)
