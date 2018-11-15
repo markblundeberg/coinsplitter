@@ -1,5 +1,5 @@
-CHECKDATASIG Coin splitter
-==========================
+CHECKDATASIG/MUL Coin splitter
+==============================
 
 ::
 
@@ -15,11 +15,13 @@ for the November 2018 Bitcoin Cash hard fork. The tool can be started via:
 
 By using this tool, you can create transactions built on a history involving
 the new OP_CHECKDATASIGVERIFY. Such transactions are impossible to replay on
-other nodes / chains that do not support this opcode.
+other nodes / chains that do not support this opcode. In a secondary mode,
+you can also create OP_MUL-based splitting, though with some limitations.
 
 **A detailed usage guide can be found here:** `<doc/coinsplitter_user_guide.md>`_
 
-For the technically inclined / curious, the primary code additions appear in `this file <gui/qt/coinsplit.py>`_.
+For the technically inclined / curious, the primary code additions appear in
+`this file <gui/qt/coinsplit.py>`_ and `this file <gui/qt/coinsplitmul.py>`_.
 
 *Standard instructions for Electron Cash (the base software) follow:*
 
