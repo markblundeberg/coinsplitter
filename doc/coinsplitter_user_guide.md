@@ -63,8 +63,8 @@ The software starts up in the same manner as Electron Cash, and is able to open 
     - wallet.satoshiscoffeehouse.com
     - (and many more)
 3. Open menu **Tools | Coin Splitter**.
-4. Click on button **“Fund split contract...”**. It will open a transaction preview that you can inspect. The tool sends 0.00001 BCH (1000 satoshis, ~ $0.005 USD) to a special P2SH address (starting with 3… or bitcoincash:p…). Click on Broadcast.
-5. Now click on the button **“Redeem with split (CDS chain)”** and broadcast the resulting transaction. There are two variants:
+4. Click on button **“Create splittable coin”**. It will open a transaction preview that you can inspect. The tool sends 0.00001 BCH (1000 satoshis, ~ $0.005 USD) to a special P2SH address (starting with 3… or bitcoincash:p…). Click on Broadcast.
+5. Now click on the button **“Redeem with split (CDS chain only)”** and broadcast the resulting transaction. There are two variants:
     1. Redeeming just the split coin -- this creates a single coin of ~660 satoshi value that can only exist on the CDS chain. You can mix this coin with other coins to create more splitted coins.
     2. Redeem the coin together with all wallet coins. This saves you the additional complication/expense of mixing the coin, by combining all of your wallet’s funds into a single coin.
 
