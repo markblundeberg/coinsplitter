@@ -1,10 +1,4 @@
 {
-    "94.1.159.183": {
-        "pruning": "-",
-        "s": "50002",
-        "t": "50001",
-        "version": "1.4"
-    },
     "abc1.hsmiths.com": {
         "pruning": "-",
         "s": "60002",
@@ -14,12 +8,6 @@
     "bch.curalle.ovh": {
         "pruning": "-",
         "s": "50002",
-        "version": "1.4"
-    },
-    "bch.electrumx.cash": {
-        "pruning": "-",
-        "s": "50002",
-        "t": "50001",
         "version": "1.4"
     },
     "bch.imaginary.cash": {
@@ -70,12 +58,6 @@
         "t": "51001",
         "version": "1.4"
     },
-    "electroncash.cascharia.com": {
-        "pruning": "-",
-        "s": "50002",
-        "t": "50001",
-        "version": "1.4"
-    },
     "electroncash.dk": {
         "pruning": "-",
         "s": "50002",
@@ -110,6 +92,37 @@
         "pruning": "-",
         "s": "50002",
         "t": "50001",
+        "version": "1.4"
+    },
+
+    "electroncash.cascharia.com": {
+        "pruning": "-",
+        "s": "50002",
+        "t": "50001",
+        "version": "1.4"
+    },
+    "electron.bitcoinsv.io": {
+        "pruning": "-",
+        "s": "50002",
+        "t": "50001",
+        "version": "1.4"
+    },
+    "satoshi.vision.cash": {
+        "pruning": "-",
+        "s": "50002",
+        "t": "50001",
+        "version": "1.4"
+    },
+    "sv.electrumx.cash": {
+        "pruning": "-",
+        "s": "50002",
+        "t": "50001",
+        "version": "1.4"
+    },
+    "sv1.hsmiths.com": {
+        "pruning": "-",
+        "s": "60004",
+        "t": "60003",
         "version": "1.4"
     }
 }
