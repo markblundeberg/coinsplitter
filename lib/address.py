@@ -246,7 +246,7 @@ class ScriptOutput(namedtuple("ScriptAddressTuple", "script")):
                 script.extend(Script.push_data(binascii.unhexlify(word)))
         return ScriptOutput(bytes(script))
 
-    def to_ui_string(self,):
+    def to_ui_string(self,ignored=None):
         '''Convert to user-readable OP-codes (plus pushdata as text if possible)
         eg OP_RETURN (12) "Hello there!"
         '''
@@ -313,7 +313,9 @@ class Address(namedtuple("AddressTuple", "hash160 kind")):
         assert kind in (cls.ADDR_P2PKH, cls.ADDR_P2SH)
         hash160 = to_bytes(hash160)
         assert len(hash160) == 20
-        return super().__new__(cls, hash160, kind)
+        ret = super().__new__(cls, hash160, kind)
+        ret._addr2str_cache = [None for i in range(0,3)] # <-- range limit should be 1 + the last FMT_* above.
+        return ret
 
     @classmethod
     def show_cashaddr(cls, on):
@@ -419,8 +421,17 @@ class Address(namedtuple("AddressTuple", "hash160 kind")):
 
     def to_string(self, fmt):
         '''Converts to a string of the given format.'''
+        try:
+            cached = self._addr2str_cache[fmt]
+            if cached:
+                return cached
+        except (IndexError, TypeError):
+            raise AddressError('unrecognised format')
+
         if fmt == self.FMT_CASHADDR:
-            return self.to_cashaddr()
+            cached = self.to_cashaddr()
+            self._addr2str_cache[fmt] = cached
+            return cached
 
         if fmt == self.FMT_LEGACY:
             if self.kind == self.ADDR_P2PKH:
@@ -433,9 +444,12 @@ class Address(namedtuple("AddressTuple", "hash160 kind")):
             else:
                 verbyte = NetworkConstants.ADDRTYPE_P2SH_BITPAY
         else:
+            # This should never be reached due to cache-lookup check above. But leaving it in as it's a harmless sanity check.
             raise AddressError('unrecognised format')
 
-        return Base58.encode_check(bytes([verbyte]) + self.hash160)
+        cached = Base58.encode_check(bytes([verbyte]) + self.hash160)
+        self._addr2str_cache[fmt] = cached
+        return cached
 
     def to_full_string(self, fmt):
         '''Convert to text, with a URI prefix for cashaddr format.'''
