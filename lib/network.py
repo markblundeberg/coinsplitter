@@ -179,6 +179,7 @@ class Network(util.DaemonThread):
         if self.blockchain_index not in self.blockchains.keys():
             self.blockchain_index = 0
         # Server for addresses and transactions
+        self.config.set_key("server_blacklist", []) ## WIPE BLACKLIST FOR COINSPLITTER
         self.blacklisted_servers = set(self.config.get('server_blacklist', []))
         self.print_error("server blacklist: {}".format(self.blacklisted_servers))
         self.default_server = self.get_config_server()
