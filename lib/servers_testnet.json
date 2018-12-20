@@ -1,4 +1,7 @@
 {
+    "electrum-testnet-abc.criptolayer.net": {
+        "s": "50112"
+    },
     "bch0.kister.net": {
         "s": "51002"
     },
