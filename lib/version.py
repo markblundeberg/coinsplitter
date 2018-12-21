@@ -1,4 +1,4 @@
-PACKAGE_VERSION = '3.3.3CS-rc1'     # version of the client package
+PACKAGE_VERSION = '3.3.3CS'     # version of the client package
 PROTOCOL_VERSION = '1.4'     # protocol version requested
 
 # The hash of the mnemonic seed must begin with this
