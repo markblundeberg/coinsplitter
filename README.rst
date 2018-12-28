@@ -21,6 +21,8 @@ you can also create OP_MUL-based splitting, though with some limitations.
 **A detailed usage guide can be found here:** `<doc/coinsplitter_user_guide.md>`_
 (中文版请访问这个链接：`<doc/CoinSplitterUserGuide_CN.md>`_)
 
+**Since Electron Cash 3.3.3, the mainline client has been checkpointed so as to only connect to BCH servers. In contrast, this release is being maintained up-to-date but with the checkpointing reverted, and with a healthy list of BSV servers included, so you can connect to both BCH and BSV. Enjoy!**
+
 For the technically inclined / curious, the primary code additions appear in
 `this file <gui/qt/coinsplit.py>`_ and `this file <gui/qt/coinsplitmul.py>`_.
 
