@@ -50,6 +50,12 @@ class SplitDialog(QDialog, MessageBoxMixin):
             self.default_redeem_address = self.wallet.get_unused_address()
             self.entropy_address = self.wallet.get_addresses()[0]
 
+        if not self.default_redeem_address:
+            # self.wallet.get_unused_address() returns None for imported privkey wallets.
+            self.close()
+            self.main_window.show_error(_("For imported private key wallets, please open the coin splitter from the Addresses tab by right clicking on an address, instead of via the Tools menu."))
+            return
+
         # Extract private key
         index = self.wallet.get_address_index(self.entropy_address)
         try:
