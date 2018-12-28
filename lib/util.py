@@ -30,6 +30,7 @@ import traceback
 import threading
 import hmac
 import stat
+import inspect, weakref
 
 from .i18n import _
 
@@ -513,9 +514,40 @@ def parse_json(message):
 
 
 class timeout(Exception):
+    ''' Server timed out on broadcast tx (normally due to a bad connection).
+    Exception string is the translated error string.'''
     pass
 
 TimeoutException = timeout # Future compat. with Electrum codebase/cherrypicking
+
+class ServerError(Exception):
+    ''' Note exception string is the translated, gui-friendly error message.
+    self.server_msg may be a dict or a string containing the raw response from
+    the server.  Do NOT display self.server_msg in GUI code due to potential for
+    phishing attacks from the untrusted server.
+    See: https://github.com/spesmilo/electrum/issues/4968  '''
+    def __init__(self, msg, server_msg = None):
+        super().__init__(msg)
+        self.server_msg = server_msg or '' # prefer empty string if none supplied
+
+class ServerErrorResponse(ServerError):
+    ''' Raised by network.py broadcast_transaction2() when the server sent an
+    error response. The actual server error response is contained in a dict
+    and/or str in self.server_msg. Warning: DO NOT display the server text.
+    Displaying server text harbors a phishing risk. Instead, a translated
+    GUI-friendly 'deduced' response is in the exception string.
+    See: https://github.com/spesmilo/electrum/issues/4968 '''
+    pass
+
+class TxHashMismatch(ServerError):
+    ''' Raised by network.py broadcast_transaction2().
+    Server sent an OK response but the txid it supplied does not match our
+    signed tx id that we requested to broadcast. The txid returned is
+    stored in self.server_msg. It's advised not to display
+    the txid response as there is also potential for phishing exploits if
+    one does. Instead, the exception string contians a suitable translated
+    GUI-friendly error message. '''
+    pass
 
 import socket
 import ssl
@@ -606,3 +638,90 @@ def setup_thread_excepthook():
 
 def versiontuple(v):
     return tuple(map(int, (v.split("."))))
+
+
+class Weak:
+    '''
+    Weak reference factory. Create either a weak proxy to a bound method
+    or a weakref.proxy, depending on whether this factory class's __new__ is
+    invoked with a bound method or a regular function/object as its first
+    argument.
+
+    If used with an object/function reference this factory just creates a
+    weakref.proxy and returns that.
+
+        myweak = Weak(myobj)
+        type(myweak) == weakref.proxy # <-- True
+
+    The interesting usage is when this factory is used with a bound method
+    instance.  In which case it returns a MethodProxy which behaves like
+    a proxy to a bound method in that you can call the MethodProxy object
+    directly:
+
+        mybound = Weak(someObj.aMethod)
+        mybound(arg1, arg2) # <-- invokes someObj.aMethod(arg1, arg2)
+
+    This is unlike regular weakref.WeakMethod which is not a proxy and requires
+    unsightly `foo()(args)`, or perhaps `foo() and foo()(args)` idioms.
+
+    Also note that no exception is raised with MethodProxy instances when
+    calling them on dead references.
+
+    Instead, if the weakly bound method is no longer alive (because its object
+    died), the situation is ignored as if no method were called (with an
+    optional print facility provided to print debug information in such a
+    situation).
+
+    The optional `print_func` class attribute can be set in MethodProxy
+    globally or for each instance specifically in order to specify a debug
+    print function (which will receive exactly two arguments: the
+    MethodProxy instance and an info string), so you can track when your weak
+    bound method is being called after its object died (defaults to
+    `print_error`).
+
+    Note you may specify a second postional argument to this factory,
+    `callback`, which is identical to the `callback` argument in the weakref
+    documentation and will be called on target object finalization
+    (destruction).
+
+    This usage/idiom is intented to be used with Qt's signal/slots mechanism
+    to allow for Qt bound signals to not prevent target objects from being
+    garbage collected due to reference cycles -- hence the permissive,
+    exception-free design.'''
+
+    def __new__(cls, obj_or_bound_method, *args, **kwargs):
+        if inspect.ismethod(obj_or_bound_method):
+            # is a method -- use our custom proxy class
+            return cls.MethodProxy(obj_or_bound_method, *args, **kwargs)
+        else:
+            # Not a method, just return a weakref.proxy
+            return weakref.proxy(obj_or_bound_method, *args, **kwargs)
+
+    ref = weakref.ref # alias for convenience so you don't have to import weakref
+    Set = weakref.WeakSet # alias for convenience
+    ValueDictionary = weakref.WeakValueDictionary # alias for convenience
+    KeyDictionary = weakref.WeakKeyDictionary # alias for convenience
+    Method = weakref.WeakMethod # alias
+    finalize = weakref.finalize # alias
+
+    class MethodProxy(weakref.WeakMethod):
+        ''' Direct-use of this class is discouraged (aside from assigning to
+            its print_func attribute). Instead use of the wrapper class 'Weak'
+            defined in the enclosing scope is encouraged. '''
+
+        print_func = lambda x, this, info: print_error(this, info) # <--- set this attribute if needed, either on the class or instance level, to control debug printing behavior. None is ok here.
+
+        def __init__(self, meth, *args, **kwargs):
+            super().__init__(meth, *args, **kwargs)
+            # teehee.. save some information about what to call this thing for debug print purposes
+            self.qname, self.sname = meth.__qualname__, str(meth.__self__)
+    
+        def __call__(self, *args, **kwargs):
+            ''' Either directly calls the method for you or prints debug info
+                if the target object died '''
+            meth = super().__call__() # if dead, None is returned
+            if meth: # could also do callable() as the test but hopefully this is sightly faster
+                return meth(*args,**kwargs)
+            elif callable(self.print_func):
+                self.print_func(self, "MethodProxy for '{}' called on a dead reference. Referent was: {})".format(self.qname,
+                                                                                                                  self.sname))

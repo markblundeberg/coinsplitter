@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 #
 # Electrum - lightweight Bitcoin client
 # Copyright (C) 2012 thomasv@gitorious
@@ -23,9 +23,7 @@
 # CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
 
-import signal
-import sys
-import traceback
+import signal, sys, traceback, gc
 
 try:
     import PyQt5
@@ -40,7 +38,7 @@ import PyQt5.QtCore as QtCore
 from electroncash.i18n import _, set_language
 from electroncash.plugins import run_hook
 from electroncash import WalletStorage
-from electroncash.util import UserCancelled, print_error
+from electroncash.util import UserCancelled, Weak, print_error
 from electroncash.networks import NetworkConstants
 
 from .installwizard import InstallWizard, GoBack
@@ -57,6 +55,7 @@ except Exception as e:
 from .util import *   # * needed for plugins
 from .main_window import ElectrumWindow
 from .network_dialog import NetworkDialog
+from .exception_window import Exception_Hook
 
 
 class OpenFileEventFilter(QObject):
@@ -86,8 +85,13 @@ class ElectrumGui:
         set_language(config.get('language'))
         # Uncomment this call to verify objects are being properly
         # GC-ed when windows are closed
-        #network.add_jobs([DebugMem([Abstract_Wallet, SPV, Synchronizer,
-        #                            ElectrumWindow], interval=5)])
+        #if daemon.network:
+        #    from electroncash.util import DebugMem
+        #    from electroncash.wallet import Abstract_Wallet
+        #    from electroncash.verifier import SPV
+        #    from electroncash.synchronizer import Synchronizer
+        #    daemon.network.add_jobs([DebugMem([Abstract_Wallet, SPV, Synchronizer,
+        #                                       ElectrumWindow], interval=5)])
         QtCore.QCoreApplication.setAttribute(QtCore.Qt.AA_X11InitThreads)
         if hasattr(QtCore.Qt, "AA_ShareOpenGLContexts"):
             QtCore.QCoreApplication.setAttribute(QtCore.Qt.AA_ShareOpenGLContexts)
@@ -97,10 +101,12 @@ class ElectrumGui:
         self.daemon = daemon
         self.plugins = plugins
         self.windows = []
+        self.weak_windows = []
         self.efilter = OpenFileEventFilter(self.windows)
         self.app = QElectrumApplication(sys.argv)
         self.app.installEventFilter(self.efilter)
         self.timer = QTimer(self.app); self.timer.setSingleShot(False); self.timer.setInterval(500) #msec
+        self.gc_timer = QTimer(self.app); self.gc_timer.setSingleShot(True); self.gc_timer.timeout.connect(ElectrumGui.gc); self.gc_timer.setInterval(333) #msec
         self.nd = None
         self.network_updated_signal_obj = QNetworkUpdatedSignalObject()
         # init tray
@@ -175,6 +181,11 @@ class ElectrumGui:
     def create_window_for_wallet(self, wallet):
         w = ElectrumWindow(self, wallet)
         self.windows.append(w)
+        dname = w.diagnostic_name()
+        def onFinalized(wr,dname=dname):
+            print_error("[{}] finalized".format(dname))
+            self.weak_windows.remove(wr)
+        self.weak_windows.append(Weak.ref(w,onFinalized))
         self.build_tray_menu()
         # FIXME: Remove in favour of the load_wallet hook
         run_hook('on_new_window', w)
@@ -231,6 +242,26 @@ class ElectrumGui:
         if not self.windows:
             self.config.save_last_wallet(window.wallet)
         run_hook('on_close_window', window)
+        # GC on ElectrumWindows takes forever to actually happen due to the
+        # circular reference zoo they create around them (they end up stuck in
+        # generation 2 for a long time before being collected). The below
+        # schedules a more comprehensive GC to happen in the very near future.
+        # This mechanism takes on the order of 40-100ms to execute (depending
+        # on hardware) but frees megabytes of memory after closing a window
+        # (which itslef is a relatively infrequent UI event, so it's
+        # an acceptable tradeoff).
+        self.gc_schedule()
+
+    def gc_schedule(self):
+        ''' Schedule garbage collection to happen in the near future.
+        Note that rapid-fire calls to this re-start the timer each time, thus
+        only the last call takes effect (it's rate-limited). '''
+        self.gc_timer.start() # start/re-start the timer to fire exactly once in timeInterval() msecs
+        
+    @staticmethod
+    def gc():
+        ''' self.gc_timer timeout() slot '''
+        gc.collect()
 
     def init_network(self):
         # Show network dialog if config does not exist
@@ -265,14 +296,18 @@ class ElectrumGui:
         self.app.lastWindowClosed.connect(quit_after_last_window)
 
         def clean_up():
+            # Just in case we get an exception as we exit, uninstall the Exception_Hook
+            Exception_Hook.uninstall()
             # Shut down the timer cleanly
             self.timer.stop()
+            self.gc_timer.stop()
             # clipboard persistence. see http://www.mail-archive.com/pyqt@riverbankcomputing.com/msg17328.html
             event = QtCore.QEvent(QtCore.QEvent.Clipboard)
             self.app.sendEvent(self.app.clipboard(), event)
             self.tray.hide()
         self.app.aboutToQuit.connect(clean_up)
 
+        Exception_Hook(self.config) # This wouldn't work anyway unless the app event loop is active, so we must install it once here and no earlier.
         # main loop
         self.app.exec_()
         # on some platforms the exec_ call may not return, so use clean_up()
