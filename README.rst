@@ -1,3 +1,7 @@
+
+
+.. note :: This project is out of date, but I'm keeping it up for posterity. The best way to split your coins nowadays is to get some already-split dust and use the official `Electron Cash <https://github.com/Electron-Cash/Electron-Cash>`_ (on BCH) and/or `ElectrumSV <https://github.com/electrumsv/electrumsv>`_ (on BSV). New users should avoid using this version due to phishing vulnerabilities in Electron Cash that have appeared in the last few months. Cheers! -Mark
+
 CHECKDATASIG/MUL Coin splitter
 ==============================
 
